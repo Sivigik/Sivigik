@@ -1,0 +1,54 @@
+div#content {
+	font-family: sans-serif;
+	background: white;
+	padding-bottom: 4em;
+	padding-top: 4em;
+}
+
+div#content * {
+	max-width: 80%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div#content iframe {
+	display: block;
+}
+
+div#content p {
+	text-align: justify;
+}
+
+div#content img {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div#content #pub_date {
+	text-align: right;
+	color: #555555;
+}
+
+.codehilite {
+	overflow-x: scroll;
+}
+
+#social {
+	display: block;
+	width: 100%;
+	text-align: center;
+}
+
+div#content div#social * {
+	vertical-align: middle;
+	max-width: initial;
+}
+
+div#content video {
+	display: block;
+}
+
+div#content div#social .twitter-share-button, div#content div#social .fb-share-button {
+	display: inline-block;
+}

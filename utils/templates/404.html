@@ -1,10 +1,6 @@
-{% extends "base.html" %}
-{%load staticfiles%}
-
-{%block style %}<link rel="stylesheet" href="{% static '404.css' %}" />{%endblock %}
-
-{% block title %}404{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-	<h2>[404 :P]</h2>
+<h1>Erreur 404</h1>
+<p>La page que vous recherchez n'existe pas.</p>
 {% endblock %}

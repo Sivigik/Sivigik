@@ -1,43 +1,64 @@
-{% extends "base.html" %}
-{% load staticfiles %}
-{% load compress %}
+{% extends "article/articleBase.html" %}
+{% load static %}
 
-{%block style %}<link rel="stylesheet" href="{% static 'article/style.css' %}" />
-<link rel="stylesheet" type="text/css" href="{% static 'article/editor.css' %}">{% endblock %}
-{% block scripts %}
-{% compress js %}
-<script src="{%static 'article/editor.js'%}"></script>
-{% endcompress %}
+{%block articleStyle%}<link rel="stylesheet" type="text/css" href="{% static 'article/edit.css' %}">
 {%endblock%}
-{% block title %}Édition{% endblock %}
 
-{% block article_title %}Édition{%endblock%}
+{% block title %}
+{{ object.title }}, édition - Sivigik
+{% endblock %}
 
 {% block content %}
-<div id="article">
-<form action="{{send_to}}" method="post" enctype="multipart/form-data">{% csrf_token %}
-{{ form.as_p }}
-{{ parts.management_form }}
-<div id="formsetZone">
-{% for p in parts %}
-<div class="npart">
-    {{p.as_p}}
-    <div class='btn btn-warning btn-sm bt_rm_sorte'>
-                <button class='glyphicon glyphicon-trash'>Supprimer</button>
-    </div>
-</div>
-{%endfor%}
-</div>
-<button id="bt_add_part" type="button">Ajouter une partie</button>
-<br/><input type="submit" value="Enregistrer" />
+<h1>Édition : {{object.title}}</h1>
+<p>Les images seront téléversées vers /media/article/{{object.pk}}/attachments/ .</p>
+<a class="button" href="{% url 'article:article-detail-pk' object.pk %}">Voir l'article</a><!--
+--><a class="button" href="{% url 'article:archive' object.pk %}">Télécharger l'archive</a>
+<hr>
+<h2>Général</h2>
+<form action="" enctype=multipart/form-data method=POST>
+{% csrf_token %}
+{{form.as_p}}
+<input type="submit" name="save" value="Mettre à jour et rester sur cette page">
+<input type="submit" name="save_and_quit" value="Mettre à jour et retourner à la page d'édition">
 </form>
-<div style="display:none;">
-<div id="epart" class="npart">
-{{ parts.empty_form.as_p }}
-<div class='bt_rm_sorte'>
-                <button class='glyphicon glyphicon-trash'>Supprimer</button>
-        </div>
+<hr>
+<h2>Images</h2>
+<a href="{% url 'gallery:new_image' object.pk %}" class="button add_attachment">Ajouter une image</a>
+<div class="attachment_list">
+<table>
+	<tr>
+		<th>Image</th>
+		<th>URL</th>
+		<th>Édition</th>
+		<th>Suppression</th>
+	</tr>
+	{% for image in images %}
+	<tr>
+		<td><img src="{{image.image.url}}"/></td>
+		<td>{{image.image.url}}</td>
+		<td><a href="{% url 'gallery:edit' image.pk %}">Éditer</a></td>
+		<td><a href="{% url 'gallery:delete' image.pk %}">Supprimer</a></td>
+	</tr>
+	{% endfor %}
+</table>
 </div>
-</div>
+<hr>
+<h2>Fichiers</h2>
+<a href="{% url 'gallery:new_file' object.pk %}" class="button add_attachment">Ajouter un fichier</a>
+<div class="attachment_list">
+<table>
+	<tr>
+		<th>Fichier</th>
+		<th>Édition</th>
+		<th>Suppression</th>
+	</tr>
+	{% for file in files %}
+	<tr>
+		<td><a href="{{file.file.url}}">{{file.file.url}}</td>
+		<td><a href="{% url 'gallery:edit' file.pk %}">Éditer</a></td>
+		<td><a href="{% url 'gallery:delete' file.pk %}">Supprimer</a></td>
+	</tr>
+	{% endfor %}
+</table>
 </div>
 {% endblock %}

@@ -1,115 +1,38 @@
-{% load staticfiles %}
-{% load category_list %}
-{% load compress %}
+{% load static %}
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, target-densitydpi=device-dpi"/>
-        <link rel="icon" type="image/png" href="{% static 'Svgk.png' %}" />
-        {% compress css %}
-        <link rel="stylesheet" href="{% static 'basic_style.css' %}" />
-		{% block style %}{% endblock %}
-        {%endcompress%}
-		<title>{% block title %}{% endblock %} • Sivigik</title>
-
-        <meta name="description" content="Un site de passionnés de bidouillage qui vous font partager cette passion !"/>
-        
-        {% compress js inline %}
-        <script>
-        function set_nav_table_displayed()
-        {
-            var nav_table=document.getElementById('nav_table');
-            if(window.innerWidth > 980)
-            {
-                nav_table.style.display='block';
-            }
-        }
-        </script>
-        <script src="{% static 'analytic.js' %}"></script>
-        <script src="{% static 'jquery-1.7.1.min.js' %}"></script>
-        {% endcompress %}
-        {%block scripts%}
-        {%endblock%}
-	</head>
-	<body onresize='set_nav_table_displayed()' id='body'>
-        <script type="text/javascript">main_analytic();</script>
-		<nav>
-			{%block nav %}
-            <h3 onclick="var nav_table=getElementById('nav_table');
-                if(nav_table.style.display == 'none')
-                {
-                    nav_table.style.display='block';
-                }
-                else
-                {
-                    nav_table.style.display='none';
-                }">Menu</h3>
-			<ul id="nav_table">
-					<li> <a href="/">Accueil</a></li>
-                    {% categories %}
-                    {% if user.is_authenticated %}
-                    <li> <a href="/category/beta/">Articles en b&ecirc;ta</a></li>
-                    {% endif %}
-			</ul>
-            {% if user.username %}
-                <a id='user_nav' href='/author/profil'>{{user.username}}</a>
-            {% else %}
-                <a id='user_nav' href='/author/login'>Log In</a>
-            {%endif%}
-			{% endblock %}
-		</nav>
-        <div id="hide_legal">
-        <div id="show_legal">
-        <aside id="legal">
-            <ul>
-                <li><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="{% static '80x15.png' %}" /></a> Ce(tte) œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">licence Creative Commons   Attribution 4.0 International</a>.</li>
-                <li>Vous pouvez retrouver le code source de ce site <a href='https://github.com/Klafyvel/Sivigik'>ici</a>.  </li>
-                <li><a href="javascript:gaOptout()">Cliquez ici pour vous opposer aux cookies de mesure d'audience de Google</a></li>
-            </ul>
-        </aside>
-        <a id="close_legal" href="#hide_legal">&larr;</a>
-        <a id="open_legal" href="#show_legal">&rarr;</a>
-        </div>
-        </div>
-		<header>
-			{% block header %}
-				<h1>Sivigik</h1>
-			{% endblock %}
-            <h2>
-			{% block article_title %}
-			{% endblock  %}
-            </h2>
-            {% block intro %}
-            {%endblock%}
-		</header>
-        <aside class="bulle" id="bulle">
-        {%block bulle%}{%endblock%}
-        </aside>
-        <section>
-		<article id="content">
-			{% block content %}{% endblock %}
-            <br/>
-		</article>
-        </section>
-
-        <footer><div id="footer_content">
-
-        </div></footer>
-        <script type="text/javascript">
-        // listen for scroll
-        var positionElementInPage = $('#bulle').offset().top;
-        $(window).scroll(
-            function() {
-                if ($(window).scrollTop() >= positionElementInPage) {
-                    // fixed
-                    $('#bulle').addClass("floatable");
-                } else {
-                    // relative
-                    $('#bulle').removeClass("floatable");
-                }
-            }
-        );
-        </script>
-	</body>
+<head>
+	<title>{% block title %}Sivigik{% endblock %}</title>
+	<meta charset="utf-8"/>
+	<meta name="description" content="Un site de passionnés de bidouillage qui vous font partager cette passion !"/>
+	{% block meta %}{%endblock%}
+	<link rel="icon" type="image/png" href="{% static 'images/icon.png' %}" />
+	<link rel="stylesheet" type="text/css" href="{% static 'base.css' %}" />
+	{% block style %}{% endblock %}
+	{% block script %}{%endblock%}
+</head>
+<body>
+{% block begining %}{% endblock %}
+<header>
+	<a href="/"><img src="{% static 'images/baniere.png' %}"></a>
+</header>
+<nav>
+	<a href="/categorie/exp" id="exp">Expériences et bricolages</a><!--
+	--><a href="/categorie/projets" id="projets">Projets</a><!--
+	--><a href="/categorie/bazar" id="bazar">Bazar de Sivigik</a><!--
+	--><a href="/categorie/programmation" id="programmation">Programmation</a><!--
+	--><a href="/categorie/site" id="site">Vie du site</a></nav>
+<main>
+	<div id="content">
+	{% block beforeContent %}{% endblock %}
+	{% block content %}
+	    
+	{% endblock content %}
+	</div>
+	<div id="more">
+	{% block more  %}{% endblock %}
+	</div>
+</main>
+<footer>Retrouvez-nous sur <a href="https://www.facebook.com/Sivigik/">Facebook</a>, <a href="https://twitter.com/Sivigik">Twitter</a> et <a href="https://www.youtube.com/channel/UCg8Sc1tfVwkbH_T2-UckE-Q">YouTube</a>.</footer>
+</body>
 </html>

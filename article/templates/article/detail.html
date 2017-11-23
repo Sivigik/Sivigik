@@ -1,104 +1,75 @@
-{% extends "base.html" %}
-{% load staticfiles %}
-{% load cache %}
+{% extends "article/articleBase.html" %}
+
+{%load static%}
 {% load emarkdown %}
-{% load compress %}
 
-{%block style %}<link rel="stylesheet" href="{% static 'article/style.css' %}" />
-<link rel="stylesheet" href="{% static 'article/atelier-dune.dark.css' %}"/>
-{% endblock %}
+{% block articleStyle %}<link rel="stylesheet" type="text/css" href="{% static 'article/detail.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'article/code.css' %}">{% endblock %}
 
-{%block scripts%}
+{% block articleScript %}<!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js">
+</script>
 <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({
-            tex2jax: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                processEscapes: true,
-            },
-            messageStyle: "none",
-        });
-        </script>
-        {% compress js %}
-        <script src="{% static 'article/highlight.min.js' %}"></script>
-        {% endcompress %}
-        {% compress js %}
-        <script>hljs.initHighlightingOnLoad();</script>
-        {% endcompress %}
-        <script type="text/javascript" src='https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
-        {% javascript_show %}
-        <script type="text/javascript">
-        function revert_arrow(id)
-        {
-            var obj = document.getElementById(id);
-            if(obj.className=="close")
-            {
-                obj.className="open";
-            }
-            else
-            {
-                obj.className="close";
-            }
-        }
-        </script>
+MathJax.Hub.Config({
+  config: ["MMLorHTML.js"],
+  jax: ["input/TeX", "output/HTML-CSS", "output/NativeMML"],
+  extensions: ["MathMenu.js", "MathZoom.js"]
+});
+</script> -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
 {%endblock%}
 
-{% block title %}{{ article.event.name }}{% endblock %}
+{% block title %}
+{{article.title}} - Sivigik
+{%endblock%}
 
-{% block article_title %}{{article.event.name}}{%endblock%}
+{% block begining %}<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/fr_FR/sdk.js#xfbml=1&version=v2.9";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>{% endblock %}
+
+{% block meta %}
+<meta property="og:url" content="{{ request.build_absolute_uri }}"/>
+<meta property="og:type" content="article" />
+<meta property="og:title" content="{{ article.title }}"/>
+<meta property="og:description" content="{{article.short}}"/>
+<meta property="og:locale" content="fr-FR"/>
+<!-- <meta property="fb:app_id" content="{YOUR_APP_ID}" /> -->
+{%endblock%}
+{% block author %}
+<h2>Auteur(s) :</h2>
+<p>{% for a in article.authors.all %}{{a.username}}<br/>{%endfor%}</p>
+{% if user.is_authenticated %}
+<a href="{% url 'article:edit' article.pk %}">Éditer cet article</a>
+{% endif %}
+{% endblock %}
+
+{%block connect%}{% endblock %}
 
 {% block content %}
-
-{% if not user.username and article.is_beta %}
+{% if not user.is_authenticated and article.is_beta %}
 <h3>Vous n'êtes pas autorisé à voir cet article.</h3>
 <a href="http://levisiteurdufutur.com/" rel="nofollow"><img src="http://www.heberger-image.fr/data/images/59812_beta_r.gif" alt="c'est une bêta."/></a>
-
 {%else%}
+<h1>{{article.title}}</h1>
+<p id="pub_date"> Le {{article.pub_date|date}}</p>
 
-
-{% if user.username %}<p class="edit_link"><a href="{{article.get_edit_url}}">[Éditer]</a></p>{%endif%}
-
-{%for part in article.parts.all%}
-    <div class="article_part" id="part_{{part.id}}">
-    <h3 id="title_{{part.id}}"><a href="#part_{{part.id}}">{{part.title}}</a></h3>
-    <div id="text_{{part.id}}" class="part">
-	{{ part.text|emarkdown|safe }}
-    <a href="#content" class="close">&uarr; Réduire</a>
-    </div>
-    </div>
-{%endfor%}
-    <br/>
-    <br/>
+{{text | emarkdown |safe}}
 {%endif%}
-{% endblock %}
-{%block bulle%}
-<div id='author'>
-<table>
-<tr>
-    <td>L'auteur</td>
-    <td>Autres articles <br />du même auteur</td>
-</tr>
-<tr>
-    <td itemscope itemtype="http://schema.org/Person">
-        <img src="{{ MEDIA_URL }}{{ article.author.avatar }}" alt='avatar'/>
-        {{ article.author.user.username }}
-    </td>
-    <td><ul>{% for o_article in article.author.get_five_last_articles %}
-            {% if not o_article.is_beta %}
-            <li><a href='/article/{{o_article.id}}'>{{o_article.event.name}}</a></li>
-            {% endif %}
-            {%endfor%}
-    </ul></td>
-</tr>
-<tr>
-    <td>    <a href="http://twitter.com/share" class="twitter-share-button"
-    data-count="vertical" data-via="Sivigik">Tweet</a>
-    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script></td>
-    </td>
-    <td>
-<iframe src="//www.facebook.com/plugins/like.php?href=http%3A%2F%2Fsivigik.alwaysdata.net%2F&amp;width=60&amp;layout=box_count&amp;action=like&amp;show_faces=true&amp;share=false&amp;height=65" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:60px; height:65px;" allowTransparency="true"></iframe>
-    </td>
-</tr>
-</table>
+<hr>
+<p>
+On est sur les réseaux sociaux !
+</p>
+<div id=social>
+<a class="twitter-share-button"
+  href="https://twitter.com/intent/tweet?via=Sivigik" data-size="large" data-text="{{article.title}}" data-url="{{ request.build_absolute_uri }}">
+Tweet</a>
+<div class="fb-share-button" data-href="{{request.build_absolute_uri}}" data-layout="button" data-size="large" data-mobile-iframe="false"></div><br/>
+<div class="fb-comments" data-mobile="true" data-href="{{request.build_absolute_uri}}" data-numposts="5"></div>
 </div>
-
-{%endblock%}
+{% endblock content %}

@@ -1,119 +1,148 @@
-#This file is part of Sivigik.
-#
-#Foobar is free software: you can redistribute it and/or modify
-#it under the terms of the GNU Affero General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-#
-#Foobar is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU Affero General Public License for more details.
-#
-#You should have received a copy of the GNU Affero General Public License
-#along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-
-# -*- coding: utf-8 -*-
-
+# coding: utf-8
+from __future__ import unicode_literals
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseRedirect
-
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.gzip import gzip_page
-
 from django.views import generic
-from django.forms.formsets import formset_factory
-
-from article.models import Article, Part
-from home.models import Event
-
-from article.forms import EditArticleForm, EditPartForm
-
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.conf import settings
 
-#import markdown
+import os
+import shutil
 
-@gzip_page
-def view_article(request, pk):
+from .models import Article, URL_TO_CATEGORY, URL_TO_CATEGORY_NAME, URL_TO_DESCRP
+
+class IndexView(generic.ListView):
+    """
+    Display the latest article or the articles in a given category.
+    """
+    template_name = 'article/listArticles.html'
+    context_object_name = 'articles'
+    model = Article
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        context = super(IndexView, self).get_context_data(**kwargs)
+        context['is_category'] = (len(self.args) > 0)
+        if context['is_category']:
+            context['category'] = self.args[0]
+            context['category_descpr'] = URL_TO_DESCRP[self.args[0]]
+            context['category_name'] = URL_TO_CATEGORY_NAME[self.args[0]]
+        return context
+
+    def get_queryset(self):
+        if len(self.args) == 0 : # Main page
+            return Article.objects.filter(is_beta=False).order_by('-pub_date')[:10]
+        else : # Category page
+            return Article.objects.filter(is_beta=False).filter(category=URL_TO_CATEGORY[self.args[0]]).order_by('-pub_date')
+
+class ArticleView(generic.DetailView):
+    """
+    Display an article.
+    """
+    template_name = 'article/detail.html'
+    model = Article
+
+    def get_context_data(self, **kwargs):
+        context = super(ArticleView, self).get_context_data(**kwargs)
+
+        with self.object.file.storage.open(self.object.file, 'r') as f:
+            context['text'] = f.read()
+        return context
+
+    def get_queryset(self):
+        """
+        An article can be accessed by its pk or its pub_date + slug.
+        """
+        if 'pk' in self.kwargs :
+            return Article.objects.filter(pk=self.kwargs['pk'])
+        year = self.kwargs['year']
+        month = self.kwargs['month']
+        slug = self.kwargs['slug']
+        return Article.objects.filter(year=year, month=month, slug=slug)
+
+
+class AuthorView(LoginRequiredMixin, generic.ListView):
+    """
+    Display every article for authors.
+    """
+    login_url = reverse_lazy('author:login')
+
+    template_name = 'article/author.html'
+    model = Article
+    context_object_name = 'articles'
+
+    queryset = Article.objects.order_by('-pub_date')
+
+
+class EditView(LoginRequiredMixin, generic.UpdateView):
+    """
+    Edit an article.
+    """
+    login_url = reverse_lazy('author:login')
+
+    template_name = 'article/edit.html'
+    model = Article
+    fields = ['authors', 'title', 'file', 'category', 'pub_date', 'is_beta']
+    success_url = reverse_lazy('article:author')
+
+    def get_context_data(self, **kwargs):
+        context = super(EditView, self).get_context_data(**kwargs)
+
+        context['images'] = self.object.attachment_set.filter(attachment_type='IMG')
+        context['files'] = self.object.attachment_set.filter(attachment_type='FILE')
+        return context
+
+    def post(self, request, **kwargs):
+        if "save" in request.POST:
+            self.success_url = reverse('article:edit', kwargs={'pk':self.get_object().pk})
+        return super(EditView, self).post(request, **kwargs)
+
+def new_article(request):
+    """
+    Create an article then redirect the user to the edit page.
+    """
+    a = Article()
+    a.pub_date = timezone.now()
+    a.title = "Nouvel article"
+    a.save()
+    directory = os.path.join(settings.MEDIA_ROOT, a.get_upload_to(''))
+    a.file.name = a.get_upload_to('article.md')
+    file_path = os.path.join(settings.MEDIA_ROOT, a.file.name)
+    os.mkdir(directory)
+    with open(file_path, 'w+') as f:
+        f.write("Nouvel article.")
+    a.save()
+    return HttpResponseRedirect(reverse('article:edit', kwargs={'pk':a.pk}))
+
+
+class DeleteView(LoginRequiredMixin, generic.DeleteView):
+    """
+    Delete an article.
+    """
+    login_url = reverse_lazy('author:login')
+    model = Article
+    success_url = reverse_lazy('article:author')
+    template_name = "article/delete.html"
+
+@login_required(login_url='/login/')
+def make_archive(request, pk):
+    """
+    Create an archive of an article then redirect the user to it.
+    """
     a = get_object_or_404(Article, pk=pk)
-    d = {'article' : a,}
-    return render(request, 'article/detail.html', d)
+    archive = a.archive()
+    return HttpResponseRedirect('/media/archive/'+archive)
 
-@login_required(login_url='/author/login/')
-def edit_article(request, article_id=0):
-    if request.method == 'POST':
-        form = EditArticleForm(request.POST, request.FILES)
-        formset=formset_factory( EditPartForm )( request.POST )
-
-        if form.is_valid():
-
-            author = request.user.author
-            date = timezone.now()
-            title = form.cleaned_data['title']
-            is_beta = form.cleaned_data['is_beta']
-            category = form.cleaned_data['category']
-            image = form.cleaned_data['image']
-            is_pinned = form.cleaned_data['is_pinned']
-
-            if article_id == 0:
-            	e = Event(name=title, pub_date=date, category=category, image=image, is_pinned=is_pinned)
-                e.save()
-            	a = Article(event=e, author=author, is_beta=is_beta)
-                a.save()
-                if formset.is_valid():
-                    for p in formset:
-                        text = p.cleaned_data['text']
-                        title= p.cleaned_data['title']
-                        part=Part(text=text, title=title, article=a)
-                        part.save()
-                idx = a.id
-            else:
-            	a = get_object_or_404(Article, pk=article_id)
-            	if image is None:
-            		image = a.event.image
-            	e = a.event
-                if author != a.author and author not in a.modifiers.all():
-            	   a.modifiers.add(author)
-            	a.is_beta = is_beta
-                e.is_pinned =  is_pinned
-            	e.name = title
-            	e.pub_date = date
-            	e.category = category
-            	e.image = image
-            	a.event = e
-
-                if formset.is_valid():
-                    for p in a.parts.all():
-                        p.delete()
-                    for p in formset:
-                        a.parts.create(title=p.cleaned_data['title'], text=p.cleaned_data['text'])
-
-                e.save()
-                a.save()
-
-            return HttpResponseRedirect(a.get_absolute_url())
-    else:
-    	if article_id == 0:
-            form = EditArticleForm()
-            parts = formset_factory(EditPartForm, extra=1)()
-        else:
-            a = get_object_or_404(Article, pk=article_id)
-            p_list = []
-            no_parts = True
-            for i in a.parts.all():
-                p_list.append({'title': i.title,'text':i.text})
-                no_parts = False
-            if no_parts:
-                parts = formset_factory(EditPartForm, extra=1)(initial=p_list)
-            else:
-                parts = formset_factory(EditPartForm, extra=0)(initial=p_list)
-            form = EditArticleForm(initial={'title':a.event.name,
-    										'image':a.event.image,
-    										'category':a.event.category,
-    										'is_beta':a.is_beta,})
-    if article_id == 0:
-    	send_to = '/article/new/'
-    else :
-    	send_to = '/article/edit/' + article_id + '/'
-    
-    return render(request, 'article/edit.html', locals())
+@login_required(login_url='/login/')
+def save_site(request):
+    """
+    Create an archive from every article then redirect the user to it.
+    """
+    for a in Article.objects.all():
+        a.archive()
+    dest = os.path.join(settings.MEDIA_ROOT, 'site')
+    shutil.make_archive(dest, 'zip', settings.ARCHIVE_ROOT)
+    return  HttpResponseRedirect('/media/site.zip')

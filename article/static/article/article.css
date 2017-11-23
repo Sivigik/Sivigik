@@ -1,0 +1,43 @@
+main {
+	padding-top: 2em;
+}
+
+div#more {
+	vertical-align: top;
+	margin-top: 1em;
+}
+
+aside.right_aside {
+  background: white;
+  vertical-align: top;
+  text-align : center;
+}
+
+aside.right_aside#connect a {
+	text-decoration: none;
+	color : black;
+	font-weight: bold;
+	text-align: center;
+}
+
+@media only screen and (min-width: 1280px) {
+
+div#content {
+	display: inline-block;
+	width: 70%;
+	margin-bottom: 3em;
+}
+
+aside.right_aside {
+  display: inline-block;
+  width: 100%;
+}
+
+div#more {
+	margin-top: 0;
+	margin-left: 1%;
+	display: inline-block;
+	width: 28%;
+}
+
+}
